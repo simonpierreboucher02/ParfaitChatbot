@@ -328,7 +328,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Chat endpoint with streaming
   app.post("/api/chat", async (req: Request, res: Response) => {
     try {
-      const { message, sessionId } = req.body;
+      const { message, sessionId, model } = req.body;
       if (!message) {
         return res.status(400).json({ error: "Message is required" });
       }
@@ -337,6 +337,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!chatbot) {
         return res.status(400).json({ error: "Chatbot not configured" });
       }
+
+      // Use provided model override, or fall back to chatbot's model
+      const selectedModel = model || chatbot.llmModel || "openai/gpt-4";
 
       // Create or get conversation
       const session = sessionId || randomUUID();
@@ -403,7 +406,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       for await (const chunk of streamChatCompletion(
         messages,
-        chatbot.llmModel,
+        selectedModel,
         parseFloat(chatbot.temperature || "0.7")
       )) {
         fullResponse += chunk;
@@ -470,6 +473,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error getting analytics:", error);
       res.status(500).json({ error: "Failed to get analytics" });
+    }
+  });
+
+  // OpenRouter Models Marketplace
+  let modelsCache: { data: any[], timestamp: number } | null = null;
+  const CACHE_DURATION = 1000 * 60 * 60; // 1 hour
+
+  app.get("/api/openrouter/models", async (req: Request, res: Response) => {
+    try {
+      // Return cached data if available and fresh
+      if (modelsCache && Date.now() - modelsCache.timestamp < CACHE_DURATION) {
+        return res.json(modelsCache.data);
+      }
+
+      // Fetch from OpenRouter
+      const response = await fetch("https://openrouter.ai/api/v1/models");
+      
+      if (!response.ok) {
+        throw new Error(`OpenRouter API returned ${response.status}`);
+      }
+
+      const result = await response.json();
+      const models = result.data || [];
+
+      // Cache the results
+      modelsCache = {
+        data: models,
+        timestamp: Date.now()
+      };
+
+      res.json(models);
+    } catch (error) {
+      console.error("Error fetching OpenRouter models:", error);
+      res.status(500).json({ error: "Failed to fetch models" });
     }
   });
 

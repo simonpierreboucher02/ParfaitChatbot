@@ -13,6 +13,7 @@ import Analytics from "@/pages/analytics";
 import Settings from "@/pages/settings";
 import Widget from "@/pages/widget";
 import ChatTest from "@/pages/chat-test";
+import Models from "@/pages/models";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -21,6 +22,7 @@ function Router() {
       <Route path="/" component={Dashboard} />
       <Route path="/chatbot" component={ChatbotSetup} />
       <Route path="/documents" component={Documents} />
+      <Route path="/models" component={Models} />
       <Route path="/widget" component={Widget} />
       <Route path="/chat-test" component={ChatTest} />
       <Route path="/conversations" component={Conversations} />
