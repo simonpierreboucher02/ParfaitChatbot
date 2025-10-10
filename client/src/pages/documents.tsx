@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { FileText, Upload, Globe, Trash2, AlertCircle } from "lucide-react";
+import { FileText, Upload, Globe, Trash2, AlertCircle, Sparkles } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,19 +11,21 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function Documents() {
   const { toast } = useToast();
   const [websiteUrl, setWebsiteUrl] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [crawlerType, setCrawlerType] = useState<"internal" | "exa">("internal");
 
   const { data: documents, isLoading } = useQuery({
     queryKey: ["/api/documents"],
   });
 
   const crawlMutation = useMutation({
-    mutationFn: async (url: string) => {
-      return await apiRequest("POST", "/api/crawl", { url });
+    mutationFn: async ({ url, type }: { url: string; type: "internal" | "exa" }) => {
+      return await apiRequest("POST", "/api/crawl", { url, crawlerType: type });
     },
     onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/documents"] });
@@ -88,7 +90,7 @@ export default function Documents() {
 
   const handleCrawl = () => {
     if (!websiteUrl) return;
-    crawlMutation.mutate(websiteUrl);
+    crawlMutation.mutate({ url: websiteUrl, type: crawlerType });
   };
 
   return (
@@ -160,11 +162,40 @@ export default function Documents() {
             <CardHeader>
               <CardTitle>Crawl Website</CardTitle>
               <CardDescription>
-                Extract content from your website automatically
+                Extract content from your website automatically with AI-powered crawling
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
+                <div className="space-y-3">
+                  <Label>Crawler Type</Label>
+                  <Select value={crawlerType} onValueChange={(val: "internal" | "exa") => setCrawlerType(val)}>
+                    <SelectTrigger data-testid="select-crawler-type">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="internal">
+                        <div className="flex items-center gap-2">
+                          <Globe className="h-4 w-4" />
+                          <div>
+                            <div className="font-medium">Internal Crawler</div>
+                            <div className="text-xs text-muted-foreground">Basic web scraping</div>
+                          </div>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="exa">
+                        <div className="flex items-center gap-2">
+                          <Sparkles className="h-4 w-4 text-primary" />
+                          <div>
+                            <div className="font-medium">Exa AI Crawler</div>
+                            <div className="text-xs text-muted-foreground">Neural embeddings-based extraction</div>
+                          </div>
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
                 <div className="flex gap-3">
                   <Input
                     placeholder="https://example.com"
@@ -177,10 +208,15 @@ export default function Documents() {
                     disabled={!websiteUrl || crawlMutation.isPending}
                     data-testid="button-start-crawl"
                   >
-                    <Globe className="h-4 w-4 mr-2" />
+                    {crawlerType === "exa" ? (
+                      <Sparkles className="h-4 w-4 mr-2" />
+                    ) : (
+                      <Globe className="h-4 w-4 mr-2" />
+                    )}
                     {crawlMutation.isPending ? "Crawling..." : "Start Crawl"}
                   </Button>
                 </div>
+                
                 {crawlMutation.isPending && (
                   <Alert>
                     <AlertCircle className="h-4 w-4" />
@@ -189,8 +225,20 @@ export default function Documents() {
                     </AlertDescription>
                   </Alert>
                 )}
+                
+                {crawlerType === "exa" && (
+                  <Alert>
+                    <Sparkles className="h-4 w-4 text-primary" />
+                    <AlertDescription>
+                      Exa AI uses neural search to extract high-quality content with better understanding of page structure and relevance
+                    </AlertDescription>
+                  </Alert>
+                )}
+                
                 <p className="text-sm text-muted-foreground">
-                  AgentiLab will intelligently extract and index content from your website (up to 10 pages)
+                  {crawlerType === "exa" 
+                    ? "Exa AI will intelligently extract semantic content from your website (up to 10 pages)"
+                    : "Basic crawler will extract text content from your website (up to 10 pages)"}
                 </p>
               </div>
             </CardContent>

@@ -226,7 +226,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Crawl endpoint
   app.post("/api/crawl", async (req: Request, res: Response) => {
     try {
-      const { url } = req.body;
+      const { url, crawlerType = "internal" } = req.body;
       if (!url) {
         return res.status(400).json({ error: "URL is required" });
       }
@@ -243,8 +243,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Company not found" });
       }
 
-      // Crawl website and wait for completion
-      const pages = await crawlWebsite(url, 10);
+      // Choose crawler based on type
+      let pages: { url: string; title: string; content: string }[];
+      
+      if (crawlerType === "exa") {
+        const { exaCrawlWebsite } = await import("./exa-crawler");
+        pages = await exaCrawlWebsite(url, 10);
+      } else {
+        pages = await crawlWebsite(url, 10);
+      }
       
       if (pages.length === 0) {
         return res.status(400).json({ 
@@ -259,7 +266,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           companyId: company.id,
           title: page.title,
           content: page.content,
-          sourceType: "crawl",
+          sourceType: crawlerType === "exa" ? "exa-crawl" : "crawl",
           sourceUrl: page.url,
           fileUrl: null,
         });
@@ -287,14 +294,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json({ 
         success: true, 
-        message: `Successfully crawled ${pages.length} page(s)`,
+        message: `Successfully crawled ${pages.length} page(s) using ${crawlerType === "exa" ? "Exa AI" : "internal crawler"}`,
         documents: results 
       });
     } catch (error) {
       console.error("Error crawling website:", error);
-      res.status(500).json({ 
-        error: error instanceof Error ? error.message : "Failed to crawl website" 
-      });
+      
+      const errorMessage = error instanceof Error ? error.message : "Failed to crawl website";
+      
+      // Handle user-facing errors (content extraction failures) as 422
+      if (errorMessage.includes("No content could be extracted") || 
+          errorMessage.includes("blocking crawlers") ||
+          errorMessage.includes("no text content")) {
+        return res.status(422).json({ error: errorMessage });
+      }
+      
+      // Handle configuration errors as 400
+      if (errorMessage.includes("EXA_API_KEY")) {
+        return res.status(400).json({ error: errorMessage });
+      }
+      
+      // All other errors as 500
+      res.status(500).json({ error: errorMessage });
     }
   });
 
