@@ -28,19 +28,31 @@ const chatbotSchema = z.object({
 
 type ChatbotForm = z.infer<typeof chatbotSchema>;
 
-const LLM_MODELS = [
-  { value: "openai/gpt-5", label: "GPT-5 (Latest)", description: "Most advanced OpenAI model" },
-  { value: "openai/gpt-4o", label: "GPT-4o", description: "Balanced performance" },
-  { value: "anthropic/claude-3.5-sonnet", label: "Claude 3.5 Sonnet", description: "Anthropic's best" },
-  { value: "anthropic/claude-3-opus", label: "Claude 3 Opus", description: "High reasoning" },
-  { value: "google/gemini-pro", label: "Gemini Pro", description: "Google's flagship" },
-  { value: "meta-llama/llama-3.1-70b", label: "Llama 3.1 70B", description: "Meta's open model" },
-];
+interface OpenRouterModel {
+  id: string;
+  name: string;
+  description: string;
+  context_length: number;
+  pricing: {
+    prompt: string;
+    completion: string;
+  };
+  architecture?: {
+    modality?: string;
+  };
+  top_provider?: {
+    max_completion_tokens?: number;
+  };
+}
 
 export default function ChatbotSetup() {
   const { toast } = useToast();
   const { data: chatbot, isLoading } = useQuery({
     queryKey: ["/api/chatbot"],
+  });
+
+  const { data: openRouterModels = [], isLoading: modelsLoading } = useQuery<OpenRouterModel[]>({
+    queryKey: ["/api/openrouter/models"],
   });
 
   const form = useForm<ChatbotForm>({
@@ -81,7 +93,7 @@ export default function ChatbotSetup() {
     updateMutation.mutate(data);
   };
 
-  if (isLoading) {
+  if (isLoading || modelsLoading) {
     return (
       <div className="flex flex-col gap-8">
         <div>
@@ -142,18 +154,24 @@ export default function ChatbotSetup() {
                           <SelectValue placeholder="Select model" />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent>
-                        {LLM_MODELS.map((model) => (
-                          <SelectItem key={model.value} value={model.value}>
+                      <SelectContent className="max-h-[300px]">
+                        {openRouterModels.map((model) => (
+                          <SelectItem key={model.id} value={model.id}>
                             <div>
-                              <div className="font-medium">{model.label}</div>
-                              <div className="text-xs text-muted-foreground">{model.description}</div>
+                              <div className="font-medium">{model.name}</div>
+                              <div className="text-xs text-muted-foreground truncate max-w-[300px]">
+                                {model.description || `Context: ${model.context_length.toLocaleString()} tokens`}
+                              </div>
                             </div>
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
-                    <FormDescription>Select from 400+ models via OpenRouter</FormDescription>
+                    <FormDescription>
+                      {openRouterModels.length > 0 
+                        ? `Select from ${openRouterModels.length} models via OpenRouter` 
+                        : "Select from 400+ models via OpenRouter"}
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
