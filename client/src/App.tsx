@@ -1,4 +1,4 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -14,6 +14,7 @@ import Settings from "@/pages/settings";
 import Widget from "@/pages/widget";
 import ChatTest from "@/pages/chat-test";
 import Models from "@/pages/models";
+import ChatStandalone from "@/pages/chat-standalone";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -33,36 +34,49 @@ function Router() {
   );
 }
 
-export default function App() {
+function AppContent() {
+  const [location] = useLocation();
+  
+  // Standalone routes without sidebar/header
+  if (location === "/chat") {
+    return <ChatStandalone />;
+  }
+
   const style = {
     "--sidebar-width": "16rem",
     "--sidebar-width-icon": "3rem",
   };
 
   return (
+    <SidebarProvider style={style as React.CSSProperties} defaultOpen={true}>
+      <div className="flex h-screen w-full">
+        <AppSidebar />
+        <div className="flex flex-col flex-1 overflow-hidden">
+          <header className="flex items-center justify-between px-6 py-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+            <SidebarTrigger data-testid="button-sidebar-toggle" />
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20">
+                <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+                <span className="text-xs font-medium text-primary">Live</span>
+              </div>
+            </div>
+          </header>
+          <main className="flex-1 overflow-y-auto p-8">
+            <div className="max-w-7xl mx-auto">
+              <Router />
+            </div>
+          </main>
+        </div>
+      </div>
+    </SidebarProvider>
+  );
+}
+
+export default function App() {
+  return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <SidebarProvider style={style as React.CSSProperties} defaultOpen={true}>
-          <div className="flex h-screen w-full">
-            <AppSidebar />
-            <div className="flex flex-col flex-1 overflow-hidden">
-              <header className="flex items-center justify-between px-6 py-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-                <SidebarTrigger data-testid="button-sidebar-toggle" />
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20">
-                    <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
-                    <span className="text-xs font-medium text-primary">Live</span>
-                  </div>
-                </div>
-              </header>
-              <main className="flex-1 overflow-y-auto p-8">
-                <div className="max-w-7xl mx-auto">
-                  <Router />
-                </div>
-              </main>
-            </div>
-          </div>
-        </SidebarProvider>
+        <AppContent />
         <Toaster />
       </TooltipProvider>
     </QueryClientProvider>

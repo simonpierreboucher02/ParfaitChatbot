@@ -9,8 +9,33 @@ export interface GeoLocation {
 
 const cache = new Map<string, GeoLocation>();
 
+function isPrivateIP(ip: string): boolean {
+  // Check for localhost
+  if (ip === "::1" || ip === "127.0.0.1" || ip.startsWith("::ffff:127.")) {
+    return true;
+  }
+  
+  // Check for private IPv4 ranges
+  const parts = ip.split('.');
+  if (parts.length === 4) {
+    const first = parseInt(parts[0]);
+    const second = parseInt(parts[1]);
+    
+    // 10.0.0.0 - 10.255.255.255
+    if (first === 10) return true;
+    
+    // 172.16.0.0 - 172.31.255.255
+    if (first === 172 && second >= 16 && second <= 31) return true;
+    
+    // 192.168.0.0 - 192.168.255.255
+    if (first === 192 && second === 168) return true;
+  }
+  
+  return false;
+}
+
 export async function getLocationFromIP(ip: string): Promise<GeoLocation> {
-  if (!ip || ip === "unknown" || ip === "::1" || ip === "127.0.0.1" || ip.startsWith("::ffff:127.")) {
+  if (!ip || ip === "unknown" || isPrivateIP(ip)) {
     return { country: null, city: null, lat: null, lon: null };
   }
 

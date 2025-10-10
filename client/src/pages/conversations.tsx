@@ -26,10 +26,16 @@ export default function Conversations() {
     enabled: !!selectedConversation,
   });
 
-  const filteredConversations = conversations?.filter((conv: any) =>
-    conv.visitorCountry?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    conv.visitorCity?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredConversations = conversations?.filter((conv: any) => {
+    if (!searchTerm) return true;
+    const search = searchTerm.toLowerCase();
+    return (
+      conv.visitorCountry?.toLowerCase().includes(search) ||
+      conv.visitorCity?.toLowerCase().includes(search) ||
+      conv.sessionId?.toLowerCase().includes(search) ||
+      conv.visitorIp?.toLowerCase().includes(search)
+    );
+  });
 
   return (
     <div className="flex flex-col gap-8">
@@ -85,12 +91,12 @@ export default function Conversations() {
                           </Badge>
                         </div>
                         <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                          {conv.visitorCountry && (
-                            <span className="flex items-center gap-1">
-                              <MapPin className="h-3 w-3" />
-                              {conv.visitorCity ? `${conv.visitorCity}, ${conv.visitorCountry}` : conv.visitorCountry}
-                            </span>
-                          )}
+                          <span className="flex items-center gap-1">
+                            <MapPin className="h-3 w-3" />
+                            {conv.visitorCity && conv.visitorCountry 
+                              ? `${conv.visitorCity}, ${conv.visitorCountry}` 
+                              : conv.visitorCountry || "Unknown Location"}
+                          </span>
                           <span className="flex items-center gap-1">
                             <Calendar className="h-3 w-3" />
                             {new Date(conv.createdAt).toLocaleString()}
