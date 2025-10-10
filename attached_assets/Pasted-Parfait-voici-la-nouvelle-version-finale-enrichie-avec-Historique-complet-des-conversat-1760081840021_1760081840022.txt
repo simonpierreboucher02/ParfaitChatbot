@@ -1,0 +1,238 @@
+Parfait ⚡ — voici la nouvelle version finale, enrichie avec :
+	•	📜 Historique complet des conversations (backend + UI intégrée)
+	•	🗺️ Carte géographique interactive des visiteurs et des interactions (avec géolocalisation approximative)
+	•	🔥 Tous les éléments précédents : authentification Clerk, choix OpenRouter (400+ LLMs), embeddings OpenAI, crawling interne ou Exa API, et interface légendaire ultra mobile-first.
+
+⸻
+
+🚀 AgentiLab ChatBuilder
+
+The Legendary AI Chat Engine for Web-Integrated, Personalized, and Geo-Aware Conversational Agents
+
+⸻
+
+🧭 Vue d’ensemble
+
+AgentiLab ChatBuilder est une plateforme SaaS d’un nouveau genre.
+Elle permet à n’importe quelle entreprise de créer, déployer et suivre son propre agent conversationnel intelligent basé sur le contenu de son site web, de ses documents et de son ADN de marque.
+
+Chaque agent est :
+	•	entraîné via une pipeline RAG (Retrieval-Augmented Generation),
+	•	alimenté par les embeddings d’OpenAI,
+	•	propulsé par le modèle LLM de ton choix (parmi plus de 400 modèles sur OpenRouter),
+	•	et relié à un système d’analyse des conversations et de géolocalisation des visiteurs.
+
+⸻
+
+🔐 1. Authentification Clerk – Signée AgentiLab
+
+Stack Auth :
+	•	SDK : Clerk (React + Node)
+	•	Providers :
+✅ Google
+✅ Apple
+✅ Email / Magic Link
+
+Personnalisation :
+	•	Interface 100% rebrandée AgentiLab : logo, typographie, couleurs et transitions.
+	•	Aucun logo Clerk apparent — l’expérience est AgentiLab native.
+	•	Thème : dark futuriste, effets néon violet et glassmorphism.
+	•	Conçu pour mobile avec des écrans fluides et responsive.
+
+Exemple d’intégration :
+
+import { SignIn } from "@clerk/clerk-react";
+export default function AuthPage() {
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-black via-gray-900 to-violet-950">
+      <img src="/agentilab-logo.svg" className="w-32 mb-6" />
+      <SignIn appearance={{ variables: { colorPrimary: "#8b5cf6" } }} />
+    </div>
+  );
+}
+
+
+⸻
+
+🏢 2. Dashboard Entreprise
+
+Une fois connecté, l’utilisateur accède à son espace d’administration :
+	•	Saisie des informations d’entreprise (nom, description, site web, secteur, logo, etc.)
+	•	Upload de fichiers (PDF, DOCX, TXT, CSV, etc.)
+	•	Paramètres du chatbot (ton, personnalité, langue, apparence).
+	•	Sélection du moteur de crawling :
+	•	🧩 AgentiLab HomeMade Crawler (rapide et interne)
+	•	🌐 Exa API (haute couverture et crawling intelligent premium).
+
+Tout est sauvegardé dynamiquement via React Query + WebSocket pour une expérience en temps réel.
+
+⸻
+
+🌐 3. Crawl et ingestion du contenu
+
+Mode interne :
+	•	Crawl intelligent avec Playwright + Cheerio.
+	•	Nettoyage automatique du HTML, détection de contenu utile.
+	•	Extraction textuelle + métadonnées SEO.
+
+Mode Exa API :
+	•	Requête API sécurisée vers Exa.ai.
+	•	Crawl massif distribué (idéal pour sites > 100 pages).
+	•	Récupération JSON structurée du contenu.
+
+👉 L’utilisateur peut choisir entre les deux selon ses besoins.
+
+⸻
+
+📚 4. Embedding & Vectorisation
+
+Tout le contenu (site + fichiers + texte) est :
+	1.	Découpé en chunks sémantiques (~500 tokens).
+	2.	Embeddé avec OpenAI Embeddings (text-embedding-3-large).
+	3.	Stocké dans FAISS, la base vectorielle la plus rapide pour recherche sémantique.
+
+Cette base devient la mémoire vivante de la compagnie.
+
+⸻
+
+🤖 5. Choix du LLM via OpenRouter (400+ modèles)
+
+L’utilisateur peut choisir le moteur d’IA qui animera son chatbot :
+	•	OpenRouter API → accès à plus de 400 modèles :
+	•	OpenAI (GPT-4o, GPT-5)
+	•	Anthropic (Claude 3.5, Sonnet, Opus)
+	•	Mistral, Gemini, Grok, Cohere, Perplexity, etc.
+	•	Interface avec recherche + filtres :
+	•	🔍 par rapidité, coût, token limit, style conversationnel, température, etc.
+	•	Mode Playground intégré pour tester les réponses avant le déploiement.
+
+⸻
+
+💬 6. Moteur RAG + Historique de Conversations
+
+Lorsqu’un visiteur interagit :
+	1.	Sa requête → Embedding (OpenAI).
+	2.	Matching FAISS → chunks contextuels.
+	3.	Injection → Prompt du modèle OpenRouter choisi.
+	4.	Réponse générée et diffusée en streaming SSE au front-end.
+
+Chaque conversation est enregistrée dans l’historique :
+	•	ID session, messages, horodatage, modèle utilisé.
+	•	Stockée dans PostgreSQL avec lien vers embeddings FAISS.
+	•	Consultable via le Dashboard Historique :
+
+📜 Historique du Chatbot :
+----------------------------------
+🕒 09/10/2025 – 15:42
+👤 Visiteur : Canada (Québec)
+💬 Q : Quels sont vos tarifs ?
+🤖 R : Nos plans débutent à 59$/mois...
+
+L’administrateur peut filtrer par :
+	•	Date, modèle, langue, pays, ou type de requête.
+
+⸻
+
+🗺️ 7. Carte de géolocalisation des utilisateurs
+
+Une map interactive en temps réel affiche les visiteurs actifs :
+	•	Basée sur Leaflet.js ou Mapbox GL JS.
+	•	Géolocalisation approximative via IP (grâce à GeoIP2 ou API Cloudflare).
+	•	Chaque interaction est affichée sous forme de bulle lumineuse animée sur la carte.
+
+Exemple :
+	•	💬 Montréal → 5 interactions aujourd’hui.
+	•	🗺️ Paris → 2 visiteurs connectés en ce moment.
+	•	📍 San Francisco → utilisateur test du bot version GPT-4o.
+
+Le dashboard offre une vue globale de l’activité mondiale du chatbot.
+
+⸻
+
+🌍 8. Déploiement du widget
+
+Chaque chatbot est exportable en :
+	•	Lien public :
+
+https://chat.agentilab.ai/@company-name
+
+
+	•	Snippet d’intégration :
+
+<script src="https://chat.agentilab.ai/widget.js" data-bot="company-name"></script>
+
+
+	•	Options de personnalisation :
+	•	Thème clair/sombre
+	•	Couleur principale (branding)
+	•	Position de la bulle (gauche/droite)
+	•	Nom + logo du bot
+
+Le widget utilise React + Tailwind et s’adapte à tous les écrans.
+Sur mobile, il ouvre une bottom sheet animée façon iMessage.
+
+⸻
+
+⚙️ 9. Stack Technique
+
+Composant	Technologie
+Frontend	React + TypeScript + Vite + Tailwind + shadcn/ui + Framer Motion
+Auth	Clerk SDK (Google, Apple, Email) – rebrandé AgentiLab
+Backend	Node.js (Express/Fastify)
+DB Utilisateurs / Historique	PostgreSQL (Drizzle ORM)
+Vector DB	FAISS
+LLM Provider	OpenRouter API (400+ modèles)
+Embeddings	OpenAI API
+Crawler	AgentiLab Engine / Exa API
+Géolocalisation	GeoIP2 / Cloudflare GeoHeader
+Map	Leaflet.js ou Mapbox
+Real-time	WebSockets / SSE
+Storage fichiers	Supabase / Google Cloud
+Deployment	Vercel / Replit / Cloud Run
+
+
+⸻
+
+📱 10. Interface légendaire et mobile-first
+
+Design Signature AgentiLab :
+	•	UI légendaire, immersive et cinématique.
+	•	Layout mobile-first avec bottom sheets, animations 60fps, glassmorphism, blur dynamic.
+	•	Mode clair/sombre adaptatif avec transitions douces.
+	•	Effets haptics sur mobile, vibration subtile lors de l’envoi de message.
+	•	Chat UI inspirée de Notion AI + Perplexity, avec streaming en temps réel et citations dynamiques.
+
+⸻
+
+🔁 11. Flux global
+
+[Login via Clerk]
+        ↓
+[Dashboard Entreprise]
+        ↓
+[Website + Files Upload]
+        ↓
+[Crawl interne / Exa API]
+        ↓
+[Embedding (OpenAI) → FAISS]
+        ↓
+[LLM (OpenRouter) → RAG Engine]
+        ↓
+[Widget Chat + Historique + Map Users]
+
+
+⸻
+
+🌟 12. Extensions prévues
+	•	Fine-tuning personnalisé par client
+	•	Analyse des émotions dans les réponses
+	•	Dashboard analytics avancé (heatmaps + sessions live)
+	•	Multi-langue & auto-traduction
+	•	Mode “AI Sales Rep” (conversion automatique en leads)
+	•	Intégration Notion / Slack / HubSpot / Zapier
+	•	A/B Testing entre modèles OpenRouter
+
+⸻
+
+Souhaites-tu que je te fasse maintenant la structure complète du projet (frontend + backend + DB + FAISS + Clerk + Map + RAG pipeline), prête à importer dans Replit ou Vercel — avec tous les dossiers, fichiers et routes API listés proprement ?
+👉 Ce serait ton Blueprint d’AgentiLab ChatBuilder complet.
