@@ -5,12 +5,27 @@ import { createEmbedding, chunkText } from "./openai";
 import { streamChatCompletion } from "./openrouter";
 import { crawlWebsite, extractTextFromFile } from "./crawler";
 import { vectorStore } from "./vectorStore";
+import { getLocationFromIP } from "./geoip";
 import multer from "multer";
 import { randomUUID } from "crypto";
+import path from "path";
+import fs from "fs";
 
 const upload = multer({ storage: multer.memoryStorage() });
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  
+  // Serve widget.js
+  app.get("/widget.js", (req: Request, res: Response) => {
+    const widgetPath = path.join(process.cwd(), "public", "widget.js");
+    if (fs.existsSync(widgetPath)) {
+      res.setHeader("Content-Type", "application/javascript");
+      res.setHeader("Access-Control-Allow-Origin", "*");
+      res.sendFile(widgetPath);
+    } else {
+      res.status(404).send("Widget not found");
+    }
+  });
   
   // Company endpoints
   app.get("/api/company", async (req: Request, res: Response) => {
@@ -30,6 +45,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error updating company:", error);
       res.status(500).json({ error: "Failed to update company" });
+    }
+  });
+
+  // Logo upload endpoint
+  app.post("/api/company/logo", upload.single("logo"), async (req: Request, res: Response) => {
+    try {
+      const file = req.file;
+      if (!file) {
+        return res.status(400).json({ error: "No file uploaded" });
+      }
+
+      // Validate file type
+      const allowedTypes = ["image/jpeg", "image/png", "image/gif", "image/webp", "image/svg+xml"];
+      if (!allowedTypes.includes(file.mimetype)) {
+        return res.status(400).json({ error: "Invalid file type. Only images are allowed." });
+      }
+
+      // Import fs for file operations
+      const fs = await import("fs");
+      const path = await import("path");
+      
+      // Get public directory from env
+      const publicPaths = process.env.PUBLIC_OBJECT_SEARCH_PATHS?.split(",") || [];
+      if (publicPaths.length === 0) {
+        return res.status(500).json({ error: "Object storage not configured" });
+      }
+
+      const publicDir = publicPaths[0];
+      const fileName = `logo-${Date.now()}${path.extname(file.originalname)}`;
+      const filePath = path.join(publicDir, fileName);
+
+      // Save file to object storage
+      fs.writeFileSync(filePath, file.buffer);
+
+      // Get bucket ID to construct URL
+      const bucketId = process.env.DEFAULT_OBJECT_STORAGE_BUCKET_ID;
+      if (!bucketId) {
+        return res.status(500).json({ error: "Object storage bucket ID not configured" });
+      }
+      
+      const logoUrl = `https://storage.googleapis.com/${bucketId}/public/${fileName}`;
+
+      // Update company with new logo URL
+      const company = await storage.getCompany();
+      if (company) {
+        const updated = await storage.createOrUpdateCompany({
+          ...company,
+          logoUrl,
+        });
+        res.json({ logoUrl: updated.logoUrl });
+      } else {
+        res.json({ logoUrl });
+      }
+    } catch (error) {
+      console.error("Error uploading logo:", error);
+      res.status(500).json({ error: "Failed to upload logo" });
     }
   });
 
@@ -245,12 +316,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let conversation = await storage.getConversation(session);
       
       if (!conversation) {
+        // Get visitor location from IP
+        const clientIp = req.ip || "unknown";
+        const location = await getLocationFromIP(clientIp);
+        
         conversation = await storage.createConversation({
           chatbotId: chatbot.id,
           sessionId: session,
-          visitorIp: req.ip || "unknown",
-          visitorCountry: null,
-          visitorCity: null,
+          visitorIp: clientIp,
+          visitorCountry: location.country,
+          visitorCity: location.city,
         });
       }
 

@@ -2,7 +2,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Building2, Code, Save } from "lucide-react";
+import { Building2, Code, Save, Upload as UploadIcon, Image } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,8 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { useState } from "react";
 
 const companySchema = z.object({
   name: z.string().min(1, "Company name is required"),
@@ -24,6 +26,7 @@ type CompanyForm = z.infer<typeof companySchema>;
 
 export default function Settings() {
   const { toast } = useToast();
+  const [uploadingLogo, setUploadingLogo] = useState(false);
   
   const { data: company, isLoading } = useQuery({
     queryKey: ["/api/company"],
@@ -66,6 +69,34 @@ export default function Settings() {
 
   const onSubmit = (data: CompanyForm) => {
     updateMutation.mutate(data);
+  };
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingLogo(true);
+    const formData = new FormData();
+    formData.append("logo", file);
+
+    try {
+      const response: any = await apiRequest("POST", "/api/company/logo", formData);
+      form.setValue("logoUrl", response.logoUrl);
+      queryClient.invalidateQueries({ queryKey: ["/api/company"] });
+      toast({
+        title: "Success",
+        description: "Logo uploaded successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to upload logo",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingLogo(false);
+      e.target.value = "";
+    }
   };
 
   const widgetCode = `<script src="${window.location.origin}/widget.js" data-bot="${chatbot?.id || 'your-bot-id'}"></script>`;
@@ -175,12 +206,49 @@ export default function Settings() {
                 name="logoUrl"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Logo URL</FormLabel>
-                    <FormControl>
-                      <Input placeholder="https://example.com/logo.png" {...field} data-testid="input-logo-url" />
-                    </FormControl>
+                    <FormLabel>Company Logo</FormLabel>
+                    <div className="flex items-center gap-4">
+                      {field.value && (
+                        <Avatar className="h-16 w-16 rounded-md">
+                          <AvatarImage src={field.value} alt="Company logo" />
+                          <AvatarFallback className="rounded-md">
+                            <Image className="h-8 w-8 text-muted-foreground" />
+                          </AvatarFallback>
+                        </Avatar>
+                      )}
+                      <div className="flex-1 space-y-2">
+                        <div className="flex gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => document.getElementById("logo-upload")?.click()}
+                            disabled={uploadingLogo}
+                            data-testid="button-upload-logo"
+                          >
+                            <UploadIcon className="h-4 w-4 mr-2" />
+                            {uploadingLogo ? "Uploading..." : "Upload Logo"}
+                          </Button>
+                          <input
+                            id="logo-upload"
+                            type="file"
+                            accept="image/*"
+                            onChange={handleLogoUpload}
+                            className="hidden"
+                          />
+                        </div>
+                        <FormControl>
+                          <Input 
+                            placeholder="Or enter logo URL: https://example.com/logo.png" 
+                            {...field} 
+                            data-testid="input-logo-url"
+                            className="text-sm"
+                          />
+                        </FormControl>
+                      </div>
+                    </div>
                     <FormDescription>
-                      Displayed in the chatbot widget
+                      Upload an image or provide a URL. Displayed in the chatbot widget.
                     </FormDescription>
                     <FormMessage />
                   </FormItem>

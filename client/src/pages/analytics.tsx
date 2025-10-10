@@ -123,20 +123,24 @@ export default function Analytics() {
             ) : (
               <div className="space-y-4" data-testid="list-popular-topics">
                 {analytics?.topTopics?.length > 0 ? (
-                  analytics.topTopics.map((topic: any, idx: number) => (
-                    <div key={idx} className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <p className="text-sm font-medium mb-1">{topic.name}</p>
-                        <div className="h-2 bg-muted rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-primary rounded-full"
-                            style={{ width: `${topic.percentage}%` }}
-                          />
+                  analytics.topTopics.map((topic: any, idx: number) => {
+                    const maxCount = analytics.topTopics[0].count;
+                    const percentage = Math.round((topic.count / maxCount) * 100);
+                    return (
+                      <div key={idx} className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <p className="text-sm font-medium mb-1 capitalize">{topic.topic}</p>
+                          <div className="h-2 bg-muted rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-primary rounded-full"
+                              style={{ width: `${percentage}%` }}
+                            />
+                          </div>
                         </div>
+                        <div className="ml-4 text-sm font-medium">{topic.count}</div>
                       </div>
-                      <div className="ml-4 text-sm font-medium">{topic.count}</div>
-                    </div>
-                  ))
+                    );
+                  })
                 ) : (
                   <div className="text-center py-12 text-muted-foreground">
                     <Activity className="h-12 w-12 mx-auto mb-3 opacity-50" />

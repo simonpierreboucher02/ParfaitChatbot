@@ -23,7 +23,7 @@ import {
   type InsertCrawlerConfig,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, count } from "drizzle-orm";
+import { eq, desc, count, gt } from "drizzle-orm";
 
 export interface IStorage {
   // Company operations
@@ -264,6 +264,64 @@ export class DatabaseStorage implements IStorage {
   async getAnalytics(): Promise<any> {
     const allConversations = await db.select().from(conversations);
     
+    // Calculate active sessions (conversations with messages in last hour)
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+    const recentMessages = await db
+      .select({ conversationId: messages.conversationId })
+      .from(messages)
+      .where(gt(messages.createdAt, oneHourAgo))
+      .groupBy(messages.conversationId);
+    const activeSessions = recentMessages.length;
+
+    // Calculate average response time
+    const allMessages = await db
+      .select()
+      .from(messages)
+      .orderBy(messages.conversationId, messages.createdAt);
+    
+    let totalResponseTime = 0;
+    let responseCount = 0;
+    
+    for (let i = 1; i < allMessages.length; i++) {
+      const prev = allMessages[i - 1];
+      const curr = allMessages[i];
+      
+      // If prev is user and curr is assistant in same conversation
+      if (
+        prev.conversationId === curr.conversationId &&
+        prev.role === "user" &&
+        curr.role === "assistant"
+      ) {
+        const timeDiff = new Date(curr.createdAt).getTime() - new Date(prev.createdAt).getTime();
+        totalResponseTime += timeDiff;
+        responseCount++;
+      }
+    }
+    
+    const avgResponseTime = responseCount > 0 ? Math.round(totalResponseTime / responseCount) : 0;
+
+    // Calculate top topics from message content
+    const topicMap = new Map<string, number>();
+    const commonWords = new Set(["the", "is", "at", "which", "on", "a", "an", "and", "or", "but", "in", "with", "to", "for", "of", "as", "by", "i", "you", "me", "my", "we", "our", "can", "could", "would", "should", "what", "how", "why", "when", "where", "who", "please", "thanks", "thank", "hello", "hi", "hey"]);
+    
+    allMessages.forEach((msg) => {
+      if (msg.role === "user") {
+        // Extract words from user messages
+        const words = msg.content.toLowerCase().match(/\b\w+\b/g) || [];
+        words.forEach((word) => {
+          if (word.length > 3 && !commonWords.has(word)) {
+            topicMap.set(word, (topicMap.get(word) || 0) + 1);
+          }
+        });
+      }
+    });
+
+    const topTopics = Array.from(topicMap.entries())
+      .map(([topic, count]) => ({ topic, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5);
+
+    // Calculate country statistics
     const countryMap = new Map<string, number>();
     allConversations.forEach((conv) => {
       if (conv.visitorCountry) {
@@ -275,18 +333,18 @@ export class DatabaseStorage implements IStorage {
       .map(([name, count]) => ({
         name,
         count,
-        percentage: Math.round((count / allConversations.length) * 100),
+        percentage: allConversations.length > 0 ? Math.round((count / allConversations.length) * 100) : 0,
       }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 5);
 
     return {
       totalVisitors: allConversations.length,
-      activeSessions: 0,
+      activeSessions,
       countriesCount: countryMap.size,
-      avgResponseTime: 450,
+      avgResponseTime,
       topCountries,
-      topTopics: [],
+      topTopics,
     };
   }
 }
