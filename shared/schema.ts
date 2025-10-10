@@ -60,6 +60,8 @@ export const conversations = pgTable("conversations", {
   visitorIp: text("visitor_ip"),
   visitorCountry: text("visitor_country"),
   visitorCity: text("visitor_city"),
+  visitorLat: text("visitor_lat"),
+  visitorLon: text("visitor_lon"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

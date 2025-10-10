@@ -326,6 +326,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           visitorIp: clientIp,
           visitorCountry: location.country,
           visitorCity: location.city,
+          visitorLat: location.lat ? location.lat.toString() : null,
+          visitorLon: location.lon ? location.lon.toString() : null,
         });
       }
 

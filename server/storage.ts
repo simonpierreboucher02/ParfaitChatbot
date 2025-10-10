@@ -338,6 +338,16 @@ export class DatabaseStorage implements IStorage {
       .sort((a, b) => b.count - a.count)
       .slice(0, 5);
 
+    // Collect visitor locations with coordinates for map
+    const visitorLocations = allConversations
+      .filter((conv) => conv.visitorLat && conv.visitorLon)
+      .map((conv) => ({
+        lat: parseFloat(conv.visitorLat!),
+        lon: parseFloat(conv.visitorLon!),
+        country: conv.visitorCountry,
+        city: conv.visitorCity,
+      }));
+
     return {
       totalVisitors: allConversations.length,
       activeSessions,
@@ -345,6 +355,7 @@ export class DatabaseStorage implements IStorage {
       avgResponseTime,
       topCountries,
       topTopics,
+      visitorLocations,
     };
   }
 }

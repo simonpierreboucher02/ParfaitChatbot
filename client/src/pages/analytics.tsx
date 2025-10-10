@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { TrendingUp, Users, Globe, Activity } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import VisitorMap from "@/components/visitor-map";
 
 export default function Analytics() {
   const { data: analytics, isLoading } = useQuery({
@@ -161,14 +162,19 @@ export default function Analytics() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="relative h-96 bg-muted/20 rounded-lg border border-border flex items-center justify-center">
-            <div className="text-center text-muted-foreground">
-              <Globe className="h-16 w-16 mx-auto mb-4 opacity-50" />
-              <p className="text-sm font-medium mb-1">Interactive Map</p>
-              <p className="text-xs">Geographic visualization of visitor interactions</p>
-              <p className="text-xs mt-2 opacity-70">(Map integration available in full version)</p>
+          {isLoading ? (
+            <Skeleton className="h-96 w-full" />
+          ) : analytics?.visitorLocations && analytics.visitorLocations.length > 0 ? (
+            <VisitorMap locations={analytics.visitorLocations} />
+          ) : (
+            <div className="relative h-96 bg-muted/20 rounded-lg border border-border flex items-center justify-center">
+              <div className="text-center text-muted-foreground">
+                <Globe className="h-16 w-16 mx-auto mb-4 opacity-50" />
+                <p className="text-sm font-medium mb-1">No Visitor Data Yet</p>
+                <p className="text-xs">Start a conversation to see visitor locations on the map</p>
+              </div>
             </div>
-          </div>
+          )}
         </CardContent>
       </Card>
     </div>
