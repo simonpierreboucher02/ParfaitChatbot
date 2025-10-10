@@ -302,16 +302,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const errorMessage = error instanceof Error ? error.message : "Failed to crawl website";
       
-      // Handle user-facing errors (content extraction failures) as 422
-      if (errorMessage.includes("No content could be extracted") || 
-          errorMessage.includes("blocking crawlers") ||
-          errorMessage.includes("no text content")) {
-        return res.status(422).json({ error: errorMessage });
+      // Handle configuration errors as 400
+      if (errorMessage.includes("EXA_API_KEY") || 
+          errorMessage.includes("API key") ||
+          errorMessage.includes("authentication")) {
+        return res.status(400).json({ error: errorMessage });
       }
       
-      // Handle configuration errors as 400
-      if (errorMessage.includes("EXA_API_KEY")) {
-        return res.status(400).json({ error: errorMessage });
+      // Handle user-facing errors (content extraction failures, rate limits, blocked domains) as 422
+      if (errorMessage.includes("No content could be extracted") || 
+          errorMessage.includes("blocking crawlers") ||
+          errorMessage.includes("no text content") ||
+          errorMessage.includes("Exa crawl failed") ||
+          errorMessage.includes("rate limit") ||
+          errorMessage.includes("domain restricted") ||
+          errorMessage.includes("cannot access")) {
+        return res.status(422).json({ error: errorMessage });
       }
       
       // All other errors as 500

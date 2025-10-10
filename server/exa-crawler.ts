@@ -43,13 +43,11 @@ export async function exaCrawlWebsite(url: string, maxPages: number = 10): Promi
     // First, try crawling the specific URL directly with livecrawl
     try {
       console.log(`Attempting direct crawl of: ${url}`);
-      const directResult = await exa.getContents(
-        [url],
-        {
-          text: { maxCharacters: 50000 },
-        },
-        { livecrawl: "always" }
-      );
+      const directResult = await exa.getContents({
+        urls: [url],
+        text: { maxCharacters: 50000 },
+        livecrawl: "always"
+      });
 
       console.log(`Direct result received:`, {
         hasResults: !!directResult.results,
