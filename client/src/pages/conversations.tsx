@@ -13,20 +13,38 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
+interface Conversation {
+  id: string;
+  sessionId: string;
+  visitorIp: string;
+  visitorCountry: string | null;
+  visitorCity: string | null;
+  messageCount: number;
+  createdAt: string;
+}
+
+interface Message {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  citations?: Array<{ title: string; url: string | null }>;
+  createdAt: string;
+}
+
 export default function Conversations() {
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedConversation, setSelectedConversation] = useState<any>(null);
+  const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
 
-  const { data: conversations, isLoading } = useQuery({
+  const { data: conversations, isLoading } = useQuery<Conversation[]>({
     queryKey: ["/api/conversations"],
   });
 
-  const { data: messages } = useQuery({
+  const { data: messages } = useQuery<Message[]>({
     queryKey: ["/api/conversations", selectedConversation?.id, "messages"],
     enabled: !!selectedConversation,
   });
 
-  const filteredConversations = conversations?.filter((conv: any) => {
+  const filteredConversations = conversations?.filter((conv) => {
     if (!searchTerm) return true;
     const search = searchTerm.toLowerCase();
     return (
@@ -132,7 +150,7 @@ export default function Conversations() {
           </DialogHeader>
           
           <div className="space-y-4 mt-4" data-testid="conversation-messages">
-            {messages?.map((msg: any) => (
+            {messages?.map((msg) => (
               <div
                 key={msg.id}
                 className={`flex gap-3 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}

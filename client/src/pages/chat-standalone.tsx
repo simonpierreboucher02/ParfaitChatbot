@@ -19,7 +19,15 @@ export default function ChatStandalone() {
   const [isStreaming, setIsStreaming] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const { data: chatbot } = useQuery({
+  interface Chatbot {
+    id: string;
+    name: string;
+    primaryColor: string;
+    llmModel: string;
+    systemPrompt?: string;
+  }
+
+  const { data: chatbot } = useQuery<Chatbot>({
     queryKey: ["/api/chatbot"],
   });
 

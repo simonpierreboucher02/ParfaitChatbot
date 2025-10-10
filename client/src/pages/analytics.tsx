@@ -4,8 +4,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Skeleton } from "@/components/ui/skeleton";
 import VisitorMap from "@/components/visitor-map";
 
+interface AnalyticsData {
+  totalVisitors: number;
+  activeSessions: number;
+  countriesCount: number;
+  avgResponseTime: number;
+  topCountries: Array<{ name: string; count: number; percentage: number }>;
+  topTopics: Array<{ topic: string; count: number }>;
+  visitorLocations: Array<{ lat: number; lon: number; country: string | null; city: string | null }>;
+}
+
 export default function Analytics() {
-  const { data: analytics, isLoading } = useQuery({
+  const { data: analytics, isLoading } = useQuery<AnalyticsData>({
     queryKey: ["/api/analytics"],
   });
 
@@ -88,7 +98,7 @@ export default function Analytics() {
             ) : (
               <div className="space-y-4" data-testid="list-geographic-distribution">
                 {analytics?.topCountries?.length > 0 ? (
-                  analytics.topCountries.map((country: any, idx: number) => (
+                  analytics.topCountries.map((country, idx) => (
                     <div key={idx} className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
@@ -124,8 +134,8 @@ export default function Analytics() {
             ) : (
               <div className="space-y-4" data-testid="list-popular-topics">
                 {analytics?.topTopics?.length > 0 ? (
-                  analytics.topTopics.map((topic: any, idx: number) => {
-                    const maxCount = analytics.topTopics[0].count;
+                  analytics.topTopics.map((topic, idx) => {
+                    const maxCount = analytics!.topTopics[0].count;
                     const percentage = Math.round((topic.count / maxCount) * 100);
                     return (
                       <div key={idx} className="flex items-center justify-between">

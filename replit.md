@@ -11,7 +11,8 @@ Key capabilities:
 - Real-time chat with streaming responses
 - Conversation history and analytics tracking
 - Embeddable widget for any website
-- Geolocation-aware visitor tracking
+- Standalone chatbot page accessible via direct URL (/chat)
+- Geolocation-aware visitor tracking with private IP detection
 
 ## User Preferences
 
@@ -50,9 +51,21 @@ Preferred communication style: Simple, everyday language.
 - `/api/company` - Company profile management
 - `/api/chatbot` - Chatbot configuration
 - `/api/documents` - Document management and crawling
-- `/api/chat` - Real-time chat with streaming
+- `/api/chat` - Real-time chat with streaming, supports model override parameter
 - `/api/conversations` - Conversation history
 - `/api/analytics` - Usage statistics
+- `/api/openrouter/models` - Fetch 400+ available LLM models with 1-hour caching
+
+**Frontend Routes:**
+- `/` - Dashboard with key metrics
+- `/chatbot` - Chatbot configuration (personality, model selection from 400+ options, temperature)
+- `/documents` - Knowledge base management
+- `/models` - OpenRouter model marketplace with search, filters, and live playground
+- `/widget` - Embeddable widget code and standalone chatbot URL
+- `/chat` - Standalone fullscreen chatbot (no sidebar/header)
+- `/conversations` - Chat history with message details
+- `/analytics` - Visitor analytics and geographic map
+- `/settings` - Company profile and branding
 
 **Key Architectural Patterns:**
 - Separation of concerns with dedicated modules (routes, storage, crawler, vector store)
@@ -117,6 +130,56 @@ Preferred communication style: Simple, everyday language.
 - **TypeScript** - Type safety across full stack
 - **ESBuild** - Server-side bundling for production
 
-**Geolocation:** Visitor tracking system (implementation in conversations tracking)
+**Geolocation:** 
+- IP-based visitor tracking using ip-api.com (free tier, 45 requests/minute)
+- Private IP detection (10.x.x.x, 172.16-31.x.x, 192.168.x.x) to avoid unnecessary API calls
+- Caching system to reduce external API requests
+- Geographic map visualization with Leaflet.js showing visitor locations
+- Displays "Unknown Location" for private IPs or failed lookups
 
 **Authentication Note:** Design documents reference Clerk authentication with Google/Apple/Email providers, but implementation is not present in current codebase. This is a planned feature.
+
+## Recent Updates (October 2025)
+
+### Standalone Chatbot Feature
+- **Fullscreen Chat Page** (`/chat`): Dedicated chatbot interface without admin sidebar/header
+  - Accessible via direct URL for sharing or testing
+  - Uses chatbot configuration (name, colors, model)
+  - Streaming responses with session persistence
+  - Opens in popup window (500x700) from widget configuration page
+  
+- **Widget Page Enhancement**: Added "Standalone Chatbot" section
+  - Display and copy chatbot URL
+  - "Open Chatbot" button launches popup window
+  - URL format: `https://[domain]/chat`
+
+### OpenRouter Model Marketplace
+- **Model Browser Page** (`/models`): Browse and test 400+ LLM models
+  - Search functionality by model name/ID
+  - Filter by provider (OpenAI, Anthropic, Meta, Google, etc.)
+  - Filter by price tier (Free, Low, Medium, High)
+  - Model details: context length, pricing, modality
+  - Live playground for testing models with streaming
+  - Copy model ID to clipboard
+  - Backend caching (1 hour) to optimize API usage
+
+- **Chatbot Settings Integration**: Dropdown now populated with all 400+ OpenRouter models
+  - Previously hardcoded to 6 models
+  - Dynamic fetching from `/api/openrouter/models`
+  - Real-time model count display
+
+### Bug Fixes
+- **Conversations Page**: Fixed empty list issue
+  - Problem: Filter only checked country/city (all null), hiding all conversations
+  - Solution: Show all conversations when search empty, added search by sessionId/IP
+  - Display "Unknown Location" when geolocation unavailable
+  
+- **Geographic Map**: Fixed empty map issue
+  - Problem: Private IPs sent to external API causing failures
+  - Solution: Added private IP detection, skip API calls for internal IPs
+  - Shows appropriate empty state for private IP deployments
+
+- **Model Playground**: Fixed model override in chat endpoint
+  - Problem: Playground always used default chatbot model
+  - Solution: Added `model` parameter support in `/api/chat`
+  - Verified with E2E testing (Claude model identity confirmation)

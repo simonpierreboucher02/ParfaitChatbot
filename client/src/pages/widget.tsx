@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Code, Eye, Palette, Settings2 } from "lucide-react";
+import { Code, Eye, Palette, Settings2, ExternalLink, Copy } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
@@ -32,12 +32,26 @@ export default function Widget() {
 </script>
 <script src="${window.location.origin}/widget.js"></script>`;
 
+  const chatbotUrl = `${window.location.origin}/chat`;
+
   const copyCode = () => {
     navigator.clipboard.writeText(widgetCode);
     toast({
       title: "Copied!",
       description: "Widget code copied to clipboard",
     });
+  };
+
+  const copyUrl = () => {
+    navigator.clipboard.writeText(chatbotUrl);
+    toast({
+      title: "Copied!",
+      description: "Chatbot URL copied to clipboard",
+    });
+  };
+
+  const openChatbot = () => {
+    window.open(chatbotUrl, "_blank", "width=500,height=700");
   };
 
   return (
@@ -48,6 +62,45 @@ export default function Widget() {
           Customize and embed your chatbot on any website
         </p>
       </div>
+
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <ExternalLink className="h-5 w-5 text-primary" />
+            Standalone Chatbot
+          </CardTitle>
+          <CardDescription>
+            Open your chatbot in a dedicated window or share the direct link
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex-1 flex items-center gap-2 px-3 py-2 bg-muted rounded-md text-sm font-mono">
+              <span className="truncate" data-testid="text-chatbot-url">{chatbotUrl}</span>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={copyUrl}
+                data-testid="button-copy-chatbot-url"
+              >
+                <Copy className="h-4 w-4 mr-2" />
+                Copy URL
+              </Button>
+              <Button
+                onClick={openChatbot}
+                data-testid="button-open-chatbot"
+              >
+                <ExternalLink className="h-4 w-4 mr-2" />
+                Open Chatbot
+              </Button>
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground mt-3">
+            Use this URL to open the chatbot in fullscreen mode or share it with your team for testing
+          </p>
+        </CardContent>
+      </Card>
 
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
