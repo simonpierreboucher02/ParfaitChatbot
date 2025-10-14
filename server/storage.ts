@@ -57,11 +57,12 @@ export interface IStorage {
 
   // Chatbot operations (filtered by userId via company)
   getChatbot(userId: string): Promise<Chatbot | undefined>;
-  getChatbotBySlug(slug: string): Promise<Chatbot | undefined>;
+  getChatbotBySlug(slug: string): Promise<(Chatbot & { company: Company }) | undefined>;
   createOrUpdateChatbot(chatbot: InsertChatbot): Promise<Chatbot>;
 
   // Document operations (filtered by userId via company)
   getDocuments(userId: string): Promise<Document[]>;
+  getDocumentsByCompanyId(companyId: string): Promise<Document[]>;
   createDocument(document: InsertDocument): Promise<Document>;
   deleteDocument(id: string, userId: string): Promise<void>;
 
@@ -155,14 +156,20 @@ export class DatabaseStorage implements IStorage {
     return chatbot || undefined;
   }
 
-  async getChatbotBySlug(slug: string): Promise<Chatbot | undefined> {
-    // Find company by slug
-    const [company] = await db.select().from(companies).where(eq(companies.slug, slug)).limit(1);
-    if (!company) return undefined;
-    
-    // Get chatbot for this company
-    const [chatbot] = await db.select().from(chatbots).where(eq(chatbots.companyId, company.id)).limit(1);
-    return chatbot || undefined;
+  async getChatbotBySlug(slug: string): Promise<(Chatbot & { company: Company }) | undefined> {
+    const result = await db
+      .select()
+      .from(chatbots)
+      .innerJoin(companies, eq(chatbots.companyId, companies.id))
+      .where(eq(companies.slug, slug))
+      .limit(1);
+
+    if (result.length === 0) return undefined;
+
+    return {
+      ...result[0].chatbots,
+      company: result[0].companies,
+    };
   }
 
   async createOrUpdateChatbot(insertChatbot: InsertChatbot): Promise<Chatbot> {
@@ -195,6 +202,10 @@ export class DatabaseStorage implements IStorage {
     if (!company) return [];
     
     return await db.select().from(documents).where(eq(documents.companyId, company.id)).orderBy(desc(documents.createdAt));
+  }
+
+  async getDocumentsByCompanyId(companyId: string): Promise<Document[]> {
+    return await db.select().from(documents).where(eq(documents.companyId, companyId)).orderBy(desc(documents.createdAt));
   }
 
   async createDocument(insertDocument: InsertDocument): Promise<Document> {
@@ -468,23 +479,6 @@ export class DatabaseStorage implements IStorage {
       topCountries,
       topTopics,
       visitorLocations,
-    };
-  }
-
-  // Public chatbot access (by slug)
-  async getChatbotBySlug(slug: string): Promise<(Chatbot & { company: Company }) | undefined> {
-    const result = await db
-      .select()
-      .from(chatbots)
-      .innerJoin(companies, eq(chatbots.companyId, companies.id))
-      .where(eq(companies.slug, slug))
-      .limit(1);
-
-    if (result.length === 0) return undefined;
-
-    return {
-      ...result[0].chatbots,
-      company: result[0].companies,
     };
   }
 }

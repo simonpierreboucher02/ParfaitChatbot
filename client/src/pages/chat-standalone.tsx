@@ -31,7 +31,7 @@ export default function ChatStandalone() {
   }
 
   const { data: chatbot, isLoading, error } = useQuery<Chatbot>({
-    queryKey: ["/api/chatbot", slug],
+    queryKey: [`/api/chatbot/${slug}`],
     enabled: !!slug,
   });
 
@@ -62,6 +62,7 @@ export default function ChatStandalone() {
         body: JSON.stringify({
           message: input,
           sessionId: sessionId || undefined,
+          slug: slug, // Required for multi-tenant chatbot identification
         }),
       });
 

@@ -26,15 +26,7 @@ export default function Widget() {
   });
 
   const widgetCode = `<!-- AgentiLab ChatBuilder Widget -->
-<script>
-  window.agentiLabConfig = {
-    botId: "${chatbot?.id || 'your-bot-id'}",
-    primaryColor: "${config.primaryColor}",
-    position: "${config.position}",
-    title: "${config.title}"
-  };
-</script>
-<script src="${window.location.origin}/widget.js"></script>`;
+<script src="${window.location.origin}/widget.js" data-bot="${company?.slug || 'your-company-slug'}"></script>`;
 
   const chatbotUrl = company?.slug 
     ? `${window.location.origin}/chat/${company.slug}`

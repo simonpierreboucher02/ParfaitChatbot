@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Send, Bot, User } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -18,6 +19,10 @@ export default function ChatTest() {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  const { data: company } = useQuery<{id: string, slug: string}>({
+    queryKey: ["/api/company"],
+  });
+
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -26,6 +31,10 @@ export default function ChatTest() {
 
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return;
+    if (!company?.slug) {
+      console.error("Company not found");
+      return;
+    }
 
     const userMessage: Message = { role: "user", content: input };
     setMessages((prev) => [...prev, userMessage]);
@@ -36,7 +45,11 @@ export default function ChatTest() {
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: input, sessionId }),
+        body: JSON.stringify({ 
+          message: input, 
+          sessionId,
+          slug: company.slug,
+        }),
       });
 
       const reader = response.body?.getReader();

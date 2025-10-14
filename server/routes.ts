@@ -143,7 +143,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.put("/api/chatbot", requireAuth, async (req: Request, res: Response) => {
     try {
-      const chatbot = await storage.createOrUpdateChatbot(req.body);
+      // Get the user's company to enforce ownership
+      const company = await storage.getCompany(req.user!.id);
+      if (!company) {
+        return res.status(400).json({ error: "Company not found. Please create a company first." });
+      }
+      
+      // Use the authenticated user's companyId (ignore any companyId in req.body)
+      const chatbot = await storage.createOrUpdateChatbot({
+        ...req.body,
+        companyId: company.id,
+      });
       res.json(chatbot);
     } catch (error) {
       console.error("Error updating chatbot:", error);
@@ -155,13 +165,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/chatbot/:slug", async (req: Request, res: Response) => {
     try {
       const { slug } = req.params;
-      const chatbot = await storage.getChatbotBySlug(slug);
+      const chatbotWithCompany = await storage.getChatbotBySlug(slug);
       
-      if (!chatbot) {
+      if (!chatbotWithCompany) {
         return res.status(404).json({ error: "Chatbot not found" });
       }
       
-      res.json(chatbot);
+      // Return only public information (omit all internal identifiers including company)
+      const { id, companyId, company, ...publicChatbot } = chatbotWithCompany;
+      res.json(publicChatbot);
     } catch (error) {
       console.error("Error getting chatbot by slug:", error);
       res.status(500).json({ error: "Failed to get chatbot" });
@@ -186,7 +198,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "No files uploaded" });
       }
 
-      const company = await storage.getCompany();
+      const company = await storage.getCompany(req.user!.id);
       if (!company) {
         return res.status(400).json({ error: "Company not found" });
       }
@@ -262,7 +274,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Invalid URL format" });
       }
 
-      const company = await storage.getCompany();
+      const company = await storage.getCompany(req.user!.id);
       if (!company) {
         return res.status(400).json({ error: "Company not found" });
       }
@@ -352,15 +364,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Chat endpoint with streaming
   app.post("/api/chat", async (req: Request, res: Response) => {
     try {
-      const { message, sessionId, model } = req.body;
+      const { message, sessionId, model, slug } = req.body;
       if (!message) {
         return res.status(400).json({ error: "Message is required" });
       }
-
-      const chatbot = await storage.getChatbot();
-      if (!chatbot) {
-        return res.status(400).json({ error: "Chatbot not configured" });
+      if (!slug) {
+        return res.status(400).json({ error: "Company slug is required" });
       }
+
+      // Get chatbot by slug (includes company info)
+      const chatbotWithCompany = await storage.getChatbotBySlug(slug);
+      if (!chatbotWithCompany) {
+        return res.status(404).json({ error: "Chatbot not found" });
+      }
+      
+      // Extract chatbot and company
+      const { company, ...chatbot } = chatbotWithCompany;
 
       // Use provided model override, or fall back to chatbot's model
       const selectedModel = model || chatbot.llmModel || "openai/gpt-4";
@@ -397,17 +416,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const queryEmbedding = await createEmbedding(message);
       const vectorResults = vectorStore.search(queryEmbedding, 3);
       
-      // Get document details from database
-      const relevantChunks = await Promise.all(
-        vectorResults.map(async (result) => {
-          const docs = await storage.getDocuments();
-          const doc = docs.find(d => d.id === result.documentId);
-          return {
-            ...result,
-            document: doc || { title: "Unknown", sourceUrl: null },
-          };
-        })
-      );
+      // Get document details from database (for this company only)
+      const docs = await storage.getDocumentsByCompanyId(company.id);
+      const relevantChunks = vectorResults.map((result) => {
+        const doc = docs.find(d => d.id === result.documentId);
+        return {
+          ...result,
+          document: doc || { title: "Unknown", sourceUrl: null },
+        };
+      });
 
       // Build context
       const context = relevantChunks

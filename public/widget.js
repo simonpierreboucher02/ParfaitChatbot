@@ -4,11 +4,11 @@
   // Get configuration from script tag
   const scripts = document.getElementsByTagName('script');
   const currentScript = scripts[scripts.length - 1];
-  const botId = currentScript.getAttribute('data-bot');
+  const botSlug = currentScript.getAttribute('data-bot');
   const apiUrl = currentScript.src.replace('/widget.js', '');
   
-  if (!botId) {
-    console.error('AgentiLab Widget: data-bot attribute is required');
+  if (!botSlug) {
+    console.error('AgentiLab Widget: data-bot attribute is required (company slug)');
     return;
   }
 
@@ -263,13 +263,13 @@
     logoUrl: null
   };
   
-  let sessionId = localStorage.getItem('agentilab_session_' + botId);
+  let sessionId = localStorage.getItem('agentilab_session_' + botSlug);
   if (!sessionId) {
     sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-    localStorage.setItem('agentilab_session_' + botId, sessionId);
+    localStorage.setItem('agentilab_session_' + botSlug, sessionId);
   }
   
-  fetch(`${apiUrl}/api/chatbot`)
+  fetch(`${apiUrl}/api/chatbot/${botSlug}`)
     .then(res => res.json())
     .then(data => {
       if (data) {
@@ -366,7 +366,7 @@
       fetch(`${apiUrl}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message, sessionId })
+        body: JSON.stringify({ message, sessionId, slug: botSlug })
       })
       .then(async res => {
         typing.remove();

@@ -45,6 +45,10 @@ export default function ModelsPage() {
     queryKey: ["/api/openrouter/models"],
   });
 
+  const { data: company } = useQuery<{id: string, slug: string}>({
+    queryKey: ["/api/company"],
+  });
+
   // Extract unique providers from model IDs
   const providers = Array.from(
     new Set(models?.map(m => m.id.split("/")[0]) || [])
@@ -84,6 +88,16 @@ export default function ModelsPage() {
     setTestResponse("");
 
     try {
+      if (!company?.slug) {
+        toast({
+          title: "Error",
+          description: "Company not found. Please set up your company first.",
+          variant: "destructive",
+        });
+        setIsTesting(false);
+        return;
+      }
+
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: {
@@ -91,8 +105,7 @@ export default function ModelsPage() {
         },
         body: JSON.stringify({
           message: testPrompt,
-          chatbotId: "playground",
-          conversationId: "playground",
+          slug: company.slug,
           model: selectedModel.id,
         }),
       });
