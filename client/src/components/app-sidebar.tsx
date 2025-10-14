@@ -1,4 +1,4 @@
-import { Bot, FileText, History, LayoutDashboard, Settings, Sparkles, Code, BarChart3 } from "lucide-react";
+import { Bot, FileText, History, LayoutDashboard, Settings, Sparkles, Code, BarChart3, BookOpen } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import {
   Sidebar,
@@ -52,6 +52,11 @@ const menuItems = [
     title: "Analytics",
     url: "/analytics",
     icon: BarChart3,
+  },
+  {
+    title: "Documentation",
+    url: "/docs",
+    icon: BookOpen,
   },
   {
     title: "Settings",

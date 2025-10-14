@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -273,6 +273,14 @@ export default function AuthPage() {
             </Tabs>
           </CardContent>
         </Card>
+
+        <div className="mt-6 text-center">
+          <Link href="/features">
+            <span className="text-sm text-muted-foreground hover:text-primary transition-colors cursor-pointer" data-testid="link-features">
+              Learn more about our features →
+            </span>
+          </Link>
+        </div>
       </div>
     </div>
   );

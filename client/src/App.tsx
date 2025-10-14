@@ -16,8 +16,10 @@ import Settings from "@/pages/settings";
 import Widget from "@/pages/widget";
 import ChatTest from "@/pages/chat-test";
 import Models from "@/pages/models";
+import Documentation from "@/pages/documentation";
 import ChatStandalone from "@/pages/chat-standalone";
 import AuthPage from "@/pages/auth";
+import Features from "@/pages/features";
 import NotFound from "@/pages/not-found";
 
 function AdminRouter() {
@@ -31,6 +33,7 @@ function AdminRouter() {
       <Route path="/chat-test" component={ChatTest} />
       <Route path="/conversations" component={Conversations} />
       <Route path="/analytics" component={Analytics} />
+      <Route path="/docs" component={Documentation} />
       <Route path="/settings" component={Settings} />
       <Route component={NotFound} />
     </Switch>
@@ -43,6 +46,10 @@ function AppContent() {
   // Standalone routes without sidebar/header
   if (location === "/auth") {
     return <AuthPage />;
+  }
+
+  if (location === "/features") {
+    return <Features />;
   }
 
   // Match /chat or /chat/:slug but not /chatbot or /chat-test
