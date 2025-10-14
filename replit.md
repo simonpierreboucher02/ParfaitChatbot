@@ -48,28 +48,55 @@ Preferred communication style: Simple, everyday language.
 **Language:** TypeScript with ES modules
 
 **API Design:** RESTful endpoints with streaming support for chat responses
+
+**Authentication (Public):**
+- `/api/register` - User registration with username/password
+- `/api/login` - User login (Passport.js local strategy)
+- `/api/logout` - User logout
+- `/api/user` - Get current authenticated user
+
+**Admin Endpoints (Protected - require authentication):**
 - `/api/company` - Company profile management
 - `/api/chatbot` - Chatbot configuration
 - `/api/documents` - Document management and crawling
-- `/api/chat` - Real-time chat with streaming, supports model override parameter
 - `/api/conversations` - Conversation history
 - `/api/analytics` - Usage statistics
-- `/api/openrouter/models` - Fetch 400+ available LLM models with 1-hour caching
+
+**Public Endpoints (No authentication required):**
+- `/api/chatbot/:slug` - Get chatbot configuration by company slug
+- `/api/chat` - Real-time chat with streaming responses
+- `/api/openrouter/models` - Fetch 400+ available LLM models (1-hour cache)
+- `/widget.js` - Widget JavaScript file
 
 **Frontend Routes:**
+
+**Public Routes:**
+- `/auth` - Login/Register page
+- `/chat/:slug` - Standalone fullscreen chatbot (accessible via company slug)
+
+**Protected Routes (require authentication):**
 - `/` - Dashboard with key metrics
-- `/chatbot` - Chatbot configuration (personality, model selection from 400+ options, temperature)
+- `/chatbot` - Chatbot configuration
 - `/documents` - Knowledge base management
-- `/models` - OpenRouter model marketplace with search, filters, and live playground
+- `/models` - OpenRouter model marketplace
 - `/widget` - Embeddable widget code and standalone chatbot URL
-- `/chat` - Standalone fullscreen chatbot (no sidebar/header)
 - `/conversations` - Chat history with message details
 - `/analytics` - Visitor analytics and geographic map
 - `/settings` - Company profile and branding
 
+**Authentication & Multi-Tenancy:**
+- **Passport.js** with local strategy for username/password authentication
+- **Scrypt** password hashing with salt (secure, memory-hard algorithm)
+- **Session-based authentication** using PostgreSQL session store
+- **Session security**: httpOnly cookies, sameSite=lax, secure in production, 7-day maxAge
+- **Multi-tenant data isolation**: All storage methods filter by userId
+- **Protected routes**: requireAuth middleware on all admin API endpoints
+- **Company slugs**: Auto-generated URL-safe slugs for public chatbot access
+
 **Key Architectural Patterns:**
 - Separation of concerns with dedicated modules (routes, storage, crawler, vector store)
 - Repository pattern via storage abstraction layer
+- Multi-tenant architecture with complete data isolation per user account
 - Streaming responses for real-time chat experience
 - Async generators for efficient data streaming
 
@@ -86,7 +113,8 @@ Preferred communication style: Simple, everyday language.
 - File-based persistence (data/vectors.json) for vector cache
 
 **Data Models:**
-- Companies - Business information and branding
+- Users - Account credentials and authentication (username, hashed password)
+- Companies - Business information, branding, and unique slug (linked to userId)
 - Chatbots - AI agent configuration (personality, LLM model, temperature)
 - Documents - Knowledge base content from uploads/crawls
 - Embeddings - Vector representations for RAG retrieval
@@ -137,9 +165,32 @@ Preferred communication style: Simple, everyday language.
 - Geographic map visualization with Leaflet.js showing visitor locations
 - Displays "Unknown Location" for private IPs or failed lookups
 
-**Authentication Note:** Design documents reference Clerk authentication with Google/Apple/Email providers, but implementation is not present in current codebase. This is a planned feature.
-
 ## Recent Updates (October 2025)
+
+### Multi-Tenant Authentication System (October 14, 2025)
+- **Complete Authentication**: Username/password auth with Passport.js and scrypt hashing
+  - Registration, login, logout endpoints
+  - Session-based authentication with PostgreSQL store
+  - Secure cookie configuration (httpOnly, sameSite, 7-day expiry)
+  
+- **Multi-Tenant Architecture**: Full data isolation per user account
+  - Users table with unique username constraint
+  - Companies table with userId foreign key and unique slug
+  - All storage methods filter by userId (companies, chatbots, documents, etc.)
+  - Protected admin routes require authentication
+  
+- **Slug-Based Public Chatbot URLs**: Companies get unique chatbot URLs
+  - Automatic slug generation from company name (e.g., "Acme Corp" → "acme-corp")
+  - Public endpoint `/api/chatbot/:slug` (no authentication required)
+  - Standalone chat page `/chat/:slug` accessible to anyone
+  - Widget page displays personalized chatbot URL
+  
+- **Frontend Authentication**: Modern auth experience
+  - AuthContext with useAuth hook for state management
+  - Login/Register page with tabs and violet-themed design
+  - ProtectedRoute component redirects unauthenticated users
+  - Public routes: `/auth`, `/chat/:slug`
+  - Protected routes: All admin pages (dashboard, settings, etc.)
 
 ### Standalone Chatbot Feature
 - **Fullscreen Chat Page** (`/chat`): Dedicated chatbot interface without admin sidebar/header

@@ -45,7 +45,8 @@ function AppContent() {
     return <AuthPage />;
   }
 
-  if (location.startsWith("/chat")) {
+  // Match /chat or /chat/:slug but not /chatbot or /chat-test
+  if (location === "/chat" || location.startsWith("/chat/")) {
     return <ChatStandalone />;
   }
 

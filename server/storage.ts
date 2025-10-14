@@ -57,6 +57,7 @@ export interface IStorage {
 
   // Chatbot operations (filtered by userId via company)
   getChatbot(userId: string): Promise<Chatbot | undefined>;
+  getChatbotBySlug(slug: string): Promise<Chatbot | undefined>;
   createOrUpdateChatbot(chatbot: InsertChatbot): Promise<Chatbot>;
 
   // Document operations (filtered by userId via company)
@@ -150,6 +151,16 @@ export class DatabaseStorage implements IStorage {
     const company = await this.getCompany(userId);
     if (!company) return undefined;
     
+    const [chatbot] = await db.select().from(chatbots).where(eq(chatbots.companyId, company.id)).limit(1);
+    return chatbot || undefined;
+  }
+
+  async getChatbotBySlug(slug: string): Promise<Chatbot | undefined> {
+    // Find company by slug
+    const [company] = await db.select().from(companies).where(eq(companies.slug, slug)).limit(1);
+    if (!company) return undefined;
+    
+    // Get chatbot for this company
     const [chatbot] = await db.select().from(chatbots).where(eq(chatbots.companyId, company.id)).limit(1);
     return chatbot || undefined;
   }

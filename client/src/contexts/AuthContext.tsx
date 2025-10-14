@@ -42,17 +42,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function login(username: string, password: string) {
-    const response = await apiRequest("/api/login", "POST", { username, password });
-    setUser(response);
+    const response = await apiRequest("POST", "/api/login", { username, password });
+    const userData = await response.json();
+    setUser(userData);
   }
 
   async function register(username: string, password: string) {
-    const response = await apiRequest("/api/register", "POST", { username, password });
-    setUser(response);
+    const response = await apiRequest("POST", "/api/register", { username, password });
+    const userData = await response.json();
+    setUser(userData);
   }
 
   async function logout() {
-    await apiRequest("/api/logout", "POST");
+    await apiRequest("POST", "/api/logout");
     setUser(null);
   }
 
