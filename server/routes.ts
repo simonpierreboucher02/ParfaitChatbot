@@ -6,6 +6,7 @@ import { streamChatCompletion } from "./openrouter";
 import { crawlWebsite, extractTextFromFile } from "./crawler";
 import { vectorStore } from "./vectorStore";
 import { getLocationFromIP } from "./geoip";
+import { setupAuth, requireAuth } from "./auth";
 import multer from "multer";
 import { randomUUID } from "crypto";
 import path from "path";
@@ -14,6 +15,8 @@ import fs from "fs";
 const upload = multer({ storage: multer.memoryStorage() });
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Setup authentication first
+  setupAuth(app);
   
   // Serve widget.js
   app.get("/widget.js", (req: Request, res: Response) => {
@@ -27,10 +30,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Company endpoints
-  app.get("/api/company", async (req: Request, res: Response) => {
+  // Company endpoints (protected)
+  app.get("/api/company", requireAuth, async (req: Request, res: Response) => {
     try {
-      const company = await storage.getCompany();
+      const company = await storage.getCompany(req.user!.id);
       res.json(company || null);
     } catch (error) {
       console.error("Error getting company:", error);
@@ -38,9 +41,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/company", async (req: Request, res: Response) => {
+  app.put("/api/company", requireAuth, async (req: Request, res: Response) => {
     try {
-      const company = await storage.createOrUpdateCompany(req.body);
+      const company = await storage.createOrUpdateCompany({
+        ...req.body,
+        userId: req.user!.id,
+      });
       res.json(company);
     } catch (error) {
       console.error("Error updating company:", error);
@@ -48,8 +54,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Logo upload endpoint
-  app.post("/api/company/logo", upload.single("logo"), async (req: Request, res: Response) => {
+  // Logo upload endpoint (protected)
+  app.post("/api/company/logo", requireAuth, upload.single("logo"), async (req: Request, res: Response) => {
     try {
       const file = req.file;
       if (!file) {
@@ -88,11 +94,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const logoUrl = `https://storage.googleapis.com/${bucketId}/public/${fileName}`;
 
       // Update company with new logo URL
-      const company = await storage.getCompany();
+      const company = await storage.getCompany(req.user!.id);
       if (company) {
         const updated = await storage.createOrUpdateCompany({
           ...company,
           logoUrl,
+          userId: req.user!.id,
         });
         res.json({ logoUrl: updated.logoUrl });
       } else {
@@ -104,14 +111,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Chatbot endpoints
-  app.get("/api/chatbot", async (req: Request, res: Response) => {
+  // Chatbot endpoints (protected)
+  app.get("/api/chatbot", requireAuth, async (req: Request, res: Response) => {
     try {
-      let chatbot = await storage.getChatbot();
+      let chatbot = await storage.getChatbot(req.user!.id);
       
       // Create default chatbot if none exists
       if (!chatbot) {
-        const company = await storage.getCompany();
+        const company = await storage.getCompany(req.user!.id);
         if (company) {
           chatbot = await storage.createOrUpdateChatbot({
             companyId: company.id,
@@ -134,7 +141,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/chatbot", async (req: Request, res: Response) => {
+  app.put("/api/chatbot", requireAuth, async (req: Request, res: Response) => {
     try {
       const chatbot = await storage.createOrUpdateChatbot(req.body);
       res.json(chatbot);
@@ -144,10 +151,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Document endpoints
-  app.get("/api/documents", async (req: Request, res: Response) => {
+  // Document endpoints (protected)
+  app.get("/api/documents", requireAuth, async (req: Request, res: Response) => {
     try {
-      const documents = await storage.getDocuments();
+      const documents = await storage.getDocuments(req.user!.id);
       res.json(documents);
     } catch (error) {
       console.error("Error getting documents:", error);
@@ -155,7 +162,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/documents/upload", upload.array("files"), async (req: Request, res: Response) => {
+  app.post("/api/documents/upload", requireAuth, upload.array("files"), async (req: Request, res: Response) => {
     try {
       const files = req.files as Express.Multer.File[];
       if (!files || files.length === 0) {
@@ -209,13 +216,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/documents/:id", async (req: Request, res: Response) => {
+  app.delete("/api/documents/:id", requireAuth, async (req: Request, res: Response) => {
     try {
       // Delete from vector store
       vectorStore.deleteByDocumentId(req.params.id);
       
       // Delete from database
-      await storage.deleteDocument(req.params.id);
+      await storage.deleteDocument(req.params.id, req.user!.id);
       res.json({ success: true });
     } catch (error) {
       console.error("Error deleting document:", error);
@@ -224,7 +231,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Crawl endpoint
-  app.post("/api/crawl", async (req: Request, res: Response) => {
+  app.post("/api/crawl", requireAuth, async (req: Request, res: Response) => {
     try {
       const { url, crawlerType = "internal" } = req.body;
       if (!url) {
@@ -435,9 +442,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Conversation endpoints
-  app.get("/api/conversations", async (req: Request, res: Response) => {
+  app.get("/api/conversations", requireAuth, async (req: Request, res: Response) => {
     try {
-      const conversations = await storage.getConversations();
+      const conversations = await storage.getConversations(req.user!.id);
       res.json(conversations);
     } catch (error) {
       console.error("Error getting conversations:", error);
@@ -456,9 +463,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Stats and Analytics
-  app.get("/api/stats", async (req: Request, res: Response) => {
+  app.get("/api/stats", requireAuth, async (req: Request, res: Response) => {
     try {
-      const stats = await storage.getStats();
+      const stats = await storage.getStats(req.user!.id);
       res.json(stats);
     } catch (error) {
       console.error("Error getting stats:", error);
@@ -466,9 +473,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/analytics", async (req: Request, res: Response) => {
+  app.get("/api/analytics", requireAuth, async (req: Request, res: Response) => {
     try {
-      const analytics = await storage.getAnalytics();
+      const analytics = await storage.getAnalytics(req.user!.id);
       res.json(analytics);
     } catch (error) {
       console.error("Error getting analytics:", error);
