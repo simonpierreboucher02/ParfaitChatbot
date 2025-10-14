@@ -219,6 +219,37 @@ Preferred communication style: Simple, everyday language.
   - Dynamic fetching from `/api/openrouter/models`
   - Real-time model count display
 
+### Critical Multi-Tenant Security Fixes (October 14, 2025)
+- **Complete Data Isolation Enforcement**: Resolved severe vulnerabilities where authenticated users could access/modify other tenants' data
+  - **PUT /api/chatbot**: Now derives companyId from req.user.id instead of accepting arbitrary companyId in request body
+  - **POST /api/documents/upload**: Now uses req.user.id to scope document uploads
+  - **POST /api/crawl**: Now uses req.user.id to scope crawler operations
+  - **POST /api/chat**: Now requires slug parameter, uses getChatbotBySlug and getDocumentsByCompanyId for proper tenant isolation
+  
+- **Public Endpoint Information Disclosure Prevention**:
+  - **GET /api/chatbot/:slug**: Now omits all internal identifiers (id, companyId, company object) from public responses
+  - Prevents cross-tenant metadata exposure via public chatbot endpoint
+  
+- **Storage Layer Security Enhancements**:
+  - Implemented storage.getDocumentsByCompanyId for company-scoped document retrieval
+  - Updated storage.getChatbotBySlug to return both chatbot and company via JOIN for backend use
+  - Removed duplicate method implementations
+  
+- **Frontend Multi-Tenant Compliance**:
+  - Updated chat-standalone.tsx to pass company slug in all API requests
+  - Updated models.tsx and chat-test.tsx to use slug-based identification
+  - Refactored widget.js to use data-bot attribute with slug for proper tenant isolation
+  - Fixed App.tsx routing to differentiate /chatbot (admin) from /chat/:slug (public)
+
+- **Security Guarantee**: Complete multi-tenant isolation verified by architect review
+  - No tenant can access another tenant's chatbot configuration
+  - No tenant can modify another tenant's chatbot
+  - No tenant can access another tenant's documents
+  - No tenant can see another tenant's conversations
+  - Public endpoints do NOT expose internal IDs (id, companyId, userId)
+  - All protected endpoints filter by req.user.id
+  - All storage methods enforce tenant isolation via userId
+
 ### Bug Fixes
 - **Conversations Page**: Fixed empty list issue
   - Problem: Filter only checked country/city (all null), hiding all conversations
