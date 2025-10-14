@@ -15,6 +15,10 @@ export default function Widget() {
     queryKey: ["/api/chatbot"],
   });
 
+  const { data: company } = useQuery({
+    queryKey: ["/api/company"],
+  });
+
   const [config, setConfig] = useState({
     primaryColor: chatbot?.primaryColor || "#8b5cf6",
     position: chatbot?.position || "right",
@@ -32,7 +36,9 @@ export default function Widget() {
 </script>
 <script src="${window.location.origin}/widget.js"></script>`;
 
-  const chatbotUrl = `${window.location.origin}/chat`;
+  const chatbotUrl = company?.slug 
+    ? `${window.location.origin}/chat/${company.slug}`
+    : `${window.location.origin}/chat`;
 
   const copyCode = () => {
     navigator.clipboard.writeText(widgetCode);

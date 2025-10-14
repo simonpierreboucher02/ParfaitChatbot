@@ -19,6 +19,9 @@ export default function ChatStandalone() {
   const [isStreaming, setIsStreaming] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  // Extract slug from URL path (/chat/company-slug)
+  const slug = window.location.pathname.split('/').filter(Boolean)[1] || '';
+
   interface Chatbot {
     id: string;
     name: string;
@@ -27,8 +30,9 @@ export default function ChatStandalone() {
     systemPrompt?: string;
   }
 
-  const { data: chatbot } = useQuery<Chatbot>({
-    queryKey: ["/api/chatbot"],
+  const { data: chatbot, isLoading, error } = useQuery<Chatbot>({
+    queryKey: ["/api/chatbot", slug],
+    enabled: !!slug,
   });
 
   useEffect(() => {
@@ -120,6 +124,38 @@ export default function ChatStandalone() {
       handleSend();
     }
   };
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="h-screen w-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading chatbot...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state - no slug or chatbot not found
+  if (!slug || error || !chatbot) {
+    return (
+      <div className="h-screen w-screen flex items-center justify-center bg-background">
+        <div className="text-center max-w-md p-8">
+          <Bot className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
+          <h2 className="text-2xl font-bold mb-2">Chatbot Not Found</h2>
+          <p className="text-muted-foreground mb-4">
+            {!slug 
+              ? "No company identifier in the URL."
+              : "This chatbot doesn't exist or has been removed."}
+          </p>
+          <p className="text-sm text-muted-foreground">
+            Please check the URL and try again.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div 

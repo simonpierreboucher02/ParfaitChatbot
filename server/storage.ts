@@ -32,6 +32,16 @@ import connectPg from "connect-pg-simple";
 
 const PostgresSessionStore = connectPg(session);
 
+// Utility function to generate URL-safe slug from company name
+function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, '') // Remove non-word chars except spaces and hyphens
+    .replace(/[\s_-]+/g, '-') // Replace spaces, underscores with single hyphen
+    .replace(/^-+|-+$/g, ''); // Remove leading/trailing hyphens
+}
+
 export interface IStorage {
   // Session store
   sessionStore: session.SessionStore;
@@ -113,6 +123,11 @@ export class DatabaseStorage implements IStorage {
 
   async createOrUpdateCompany(insertCompany: InsertCompany): Promise<Company> {
     const existing = await this.getCompany(insertCompany.userId);
+    
+    // Generate slug if not provided
+    if (!insertCompany.slug && insertCompany.name) {
+      insertCompany.slug = slugify(insertCompany.name);
+    }
     
     if (existing) {
       const [updated] = await db

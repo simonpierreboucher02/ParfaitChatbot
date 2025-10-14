@@ -151,6 +151,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Public chatbot endpoint by slug (no auth required)
+  app.get("/api/chatbot/:slug", async (req: Request, res: Response) => {
+    try {
+      const { slug } = req.params;
+      const chatbot = await storage.getChatbotBySlug(slug);
+      
+      if (!chatbot) {
+        return res.status(404).json({ error: "Chatbot not found" });
+      }
+      
+      res.json(chatbot);
+    } catch (error) {
+      console.error("Error getting chatbot by slug:", error);
+      res.status(500).json({ error: "Failed to get chatbot" });
+    }
+  });
+
   // Document endpoints (protected)
   app.get("/api/documents", requireAuth, async (req: Request, res: Response) => {
     try {
