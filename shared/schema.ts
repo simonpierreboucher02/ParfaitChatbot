@@ -4,10 +4,20 @@ import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-// Companies table - stores business information
+// Users table - authentication and account management
+export const users = pgTable("users", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  username: text("username").notNull().unique(),
+  password: text("password").notNull(), // hashed password
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Companies table - stores business information (one per user)
 export const companies = pgTable("companies", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
+  slug: text("slug").notNull().unique(), // URL slug for chatbot access
   description: text("description"),
   website: text("website"),
   industry: text("industry"),
@@ -87,7 +97,18 @@ export const crawlerConfigs = pgTable("crawler_configs", {
 });
 
 // Relations
-export const companiesRelations = relations(companies, ({ many }) => ({
+export const usersRelations = relations(users, ({ one }) => ({
+  company: one(companies, {
+    fields: [users.id],
+    references: [companies.userId],
+  }),
+}));
+
+export const companiesRelations = relations(companies, ({ one, many }) => ({
+  user: one(users, {
+    fields: [companies.userId],
+    references: [users.id],
+  }),
   chatbots: many(chatbots),
   documents: many(documents),
   crawlerConfigs: many(crawlerConfigs),
@@ -139,6 +160,11 @@ export const crawlerConfigsRelations = relations(crawlerConfigs, ({ one }) => ({
 }));
 
 // Insert schemas
+export const insertUserSchema = createInsertSchema(users).omit({
+  id: true,
+  createdAt: true,
+});
+
 export const insertCompanySchema = createInsertSchema(companies).omit({
   id: true,
   createdAt: true,
@@ -175,6 +201,9 @@ export const insertCrawlerConfigSchema = createInsertSchema(crawlerConfigs).omit
 });
 
 // Types
+export type InsertUser = z.infer<typeof insertUserSchema>;
+export type User = typeof users.$inferSelect;
+
 export type InsertCompany = z.infer<typeof insertCompanySchema>;
 export type Company = typeof companies.$inferSelect;
 
